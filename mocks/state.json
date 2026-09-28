@@ -1,0 +1,525 @@
+{
+ "org": {
+  "id": 8365150,
+  "name": "ООО «Демо-Техника»",
+  "locale": "ru",
+  "status": "active"
+ },
+ "departments": [
+  {
+   "id": 100,
+   "name": "ООО Демо",
+   "parentId": null
+  },
+  {
+   "id": 101,
+   "name": "Генеральный директор",
+   "parentId": null
+  },
+  {
+   "id": 102,
+   "name": "ИТ отдел",
+   "parentId": 101
+  },
+  {
+   "id": 103,
+   "name": "Бухгалтерия",
+   "parentId": 101
+  },
+  {
+   "id": 104,
+   "name": "Отдел продаж",
+   "parentId": 101
+  },
+  {
+   "id": 201,
+   "name": "Техподдержка",
+   "parentId": 102
+  },
+  {
+   "id": 1001,
+   "name": "Хозяйственный отдел",
+   "parentId": 100
+  }
+ ],
+ "users": [
+  {
+   "id": "1001",
+   "nickname": "ivanov",
+   "display_name": "Иванов Иван Иванович",
+   "name": {
+    "last": "Иванов",
+    "first": "Иван"
+   },
+   "departmentId": "101",
+   "email": "ivanov@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Генеральный директор",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "ivanov@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-01",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "11223344595"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1002",
+   "nickname": "petrova",
+   "display_name": "Петрова Анна Сергеевна",
+   "name": {
+    "last": "Петрова",
+    "first": "Анна"
+   },
+   "departmentId": "103",
+   "email": "petrova@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Главный бухгалтер",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "petrova@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-02",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (916) 300-00-02",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "22334455696"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1003",
+   "nickname": "sidorov",
+   "display_name": "Сидоров Павел Николаевич",
+   "name": {
+    "last": "Сидоров",
+    "first": "Павел"
+   },
+   "departmentId": "201",
+   "email": "sidorov@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Системный администратор",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "sidorov@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-03",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "email",
+     "value": "sidorov.old@demo360.test",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "33445566797"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1004",
+   "nickname": "kosygin2024",
+   "display_name": "Косыгин Владимир Аркадьевич",
+   "name": {
+    "last": "Косыгин",
+    "first": "Владимир"
+   },
+   "departmentId": "102",
+   "email": "kosygin@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Программист",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "kosygin@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-04",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "email",
+     "value": "kosygin2024@demo360.test",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "44556677898"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1005",
+   "nickname": "vorobyova_a",
+   "display_name": "Воробьянова Мария Дмитриевна",
+   "name": {
+    "last": "Воробьянова",
+    "first": "Мария"
+   },
+   "departmentId": "104",
+   "email": "vorobyova_a@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Менеджер по продажам",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "vorobyova_a@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-05",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "55667788990"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1006",
+   "nickname": "smirnova",
+   "display_name": "Смирнова Елена Викторовна",
+   "name": {
+    "last": "Смирнова",
+    "first": "Елена"
+   },
+   "departmentId": "103",
+   "email": "smirnova@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Бухгалтер",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "smirnova@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "email",
+     "value": "smirnova.e@demo360.test",
+     "main": false,
+     "alias": true,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-06",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "66778899091"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1007",
+   "nickname": "belov",
+   "display_name": "Белов Дмитрий Олегович",
+   "name": {
+    "last": "Белов",
+    "first": "Дмитрий"
+   },
+   "departmentId": "102",
+   "email": "belov@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Системный администратор",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "belov@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-07",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (916) 200-00-07",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "77889900192"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1008",
+   "nickname": "zakharova",
+   "display_name": "Захарова Ольга Петровна",
+   "name": {
+    "last": "Захарова",
+    "first": "Ольга"
+   },
+   "departmentId": "104",
+   "email": "zakharova@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Руководитель отдела продаж",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "zakharova@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-08",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "88990011293"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1009",
+   "nickname": "orlova",
+   "display_name": "Орлова Наталья Ивановна",
+   "name": {
+    "last": "Орлова",
+    "first": "Наталья"
+   },
+   "departmentId": "104",
+   "email": "orlova@demo360.test",
+   "status": "fired",
+   "isEnabled": false,
+   "isFired": true,
+   "position": "Менеджер",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "orlova@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-09",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "99001122394"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1010",
+   "nickname": "trushkina",
+   "display_name": "Трушкина Вера Михайловна",
+   "name": {
+    "last": "Трушкина",
+    "first": "Вера"
+   },
+   "departmentId": "103",
+   "email": "trushkina@demo360.test",
+   "status": "fired",
+   "isEnabled": false,
+   "isFired": true,
+   "position": "Кассир",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "trushkina@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-10",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "00112233495"
+    }
+   ],
+   "companyId": 8365150
+  },
+  {
+   "id": "1011",
+   "nickname": "denisov",
+   "display_name": "Денисов Артём Юрьевич",
+   "name": {
+    "last": "Денисов",
+    "first": "Артём"
+   },
+   "departmentId": "201",
+   "email": "denisov@demo360.test",
+   "status": "active",
+   "isEnabled": true,
+   "isFired": false,
+   "position": "Оператор поддержки",
+   "contacts": [
+    {
+     "type": "email",
+     "value": "denisov@demo360.test",
+     "main": true,
+     "alias": false,
+     "synthetic": false
+    },
+    {
+     "type": "phone",
+     "value": "+7 (495) 100-00-11",
+     "main": false,
+     "alias": false,
+     "synthetic": false
+    }
+   ],
+   "externalIds": [
+    {
+     "type": "snils",
+     "id": "11223344596"
+    }
+   ],
+   "companyId": 8365150
+  }
+ ],
+ "shared_mailboxes": [
+  {
+   "id": 9001,
+   "email": "office@demo360.test",
+   "nickname": "office",
+   "name": "Офис"
+  },
+  {
+   "id": 9002,
+   "email": "helpdesk@demo360.test",
+   "nickname": "helpdesk",
+   "name": "HelpDesk"
+  }
+ ],
+ "delegated_mailboxes": [
+  {
+   "id": 9101,
+   "email": "zakharova@demo360.test",
+   "delegateTo": "ivanov@demo360.test",
+   "rights": "full"
+  }
+ ],
+ "service_applications": [],
+ "next_dept_id": 1002,
+ "next_user_id": 2000
+}

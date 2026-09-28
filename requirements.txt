@@ -1,0 +1,18 @@
+# Y360 Admin — единая консоль администрирования Яндекс 360.
+# Интерфейс: NiceGUI (Vue/Quasar + FastAPI под капотом, только Python).
+nicegui>=2.11,<3
+
+# PostgreSQL
+psycopg2-binary>=2.9
+
+# HTTP (Яндекс 360 API, token-exchange)
+requests>=2.31
+
+# Active Directory (LDAP/LDAPS)
+ldap3>=2.9
+
+# Конфигурация из .env
+python-dotenv>=1.0
+
+# Экспорт таблиц в Excel
+openpyxl>=3.1

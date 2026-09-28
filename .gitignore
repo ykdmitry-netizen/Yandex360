@@ -1,0 +1,34 @@
+# --- Локальное окружение ---
+venv/
+.venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Секреты и локальные настройки ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- Данные стенда (генерируются локально) ---
+data/pgdata/
+data/logs/
+data/backups/
+data/tmp/
+*.log
+
+# --- Портативный PostgreSQL 17 (~950 МБ, ставится отдельно) ---
+tools/pg17/
+
+# --- Редакторы / ОС ---
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+~$*
