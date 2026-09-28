@@ -16,3 +16,7 @@ python-dotenv>=1.0
 
 # Экспорт таблиц в Excel
 openpyxl>=3.1
+
+# Проверка подписи id_token при входе через ADFS (OIDC)
+# (только для AUTH_MODE=oidc; при AUTH_MODE=none не используется)
+cryptography>=42.0

@@ -76,6 +76,24 @@ class Settings:
     max_users: int  # 0 = без ограничения
     allow_local_emails: bool
 
+    # --- Аутентификация консоли (см. web/auth.py) ---
+    auth_mode: str            # none | oidc | ldap
+    auth_session_hours: int   # срок жизни сессии
+    auth_cookie_secure: bool  # ставить Secure у куки (нужен https)
+    session_secret: str       # подпись куки сессии
+    oidc_issuer: str          # https://sso.kolmar.ru/adfs
+    oidc_client_id: str
+    oidc_client_secret: str
+    oidc_redirect_uri: str    # должен совпадать с зарегистрированным в ADFS
+    oidc_scopes: str
+    oidc_admin_group: str     # группа AD, которой разрешён вход ("" — любой доменный пользователь)
+    oidc_group_claim: str     # имя claim с группами в id_token
+    oidc_verify_tls: bool     # проверять сертификат IdP
+
+    @property
+    def auth_enabled(self) -> bool:
+        return self.auth_mode.strip().lower() in ("oidc", "ldap")
+
     @property
     def mock_ad(self) -> bool:
         return self.ad_server.strip().lower() in ("mock", "mock-ad", "mock-ad.local")
@@ -132,6 +150,18 @@ class Settings:
             request_timeout=_env_int("REQUEST_TIMEOUT", 20),
             max_users=_env_int("MAX_USERS", 0),
             allow_local_emails=_env_bool("ALLOW_LOCAL_EMAILS", False),
+            auth_mode=_env("AUTH_MODE", "none").lower(),
+            auth_session_hours=_env_int("AUTH_SESSION_HOURS", 12),
+            auth_cookie_secure=_env_bool("AUTH_COOKIE_SECURE", False),
+            session_secret=_env("SESSION_SECRET", ""),
+            oidc_issuer=_env("OIDC_ISSUER", "").rstrip("/"),
+            oidc_client_id=_env("OIDC_CLIENT_ID", ""),
+            oidc_client_secret=_env("OIDC_CLIENT_SECRET", ""),
+            oidc_redirect_uri=_env("OIDC_REDIRECT_URI", ""),
+            oidc_scopes=_env("OIDC_SCOPES", "openid profile email"),
+            oidc_admin_group=_env("OIDC_ADMIN_GROUP", ""),
+            oidc_group_claim=_env("OIDC_GROUP_CLAIM", "group"),
+            oidc_verify_tls=_env_bool("OIDC_VERIFY_TLS", True),
         )
 
 

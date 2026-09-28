@@ -12,10 +12,11 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from nicegui import ui  # noqa: E402
+from nicegui import app, ui  # noqa: E402
 
 from core.config import get_settings  # noqa: E402
 from core.logs import get_logger  # noqa: E402
+from web import auth  # noqa: E402
 from web.layout import page_shell  # noqa: E402
 from web.pages import (  # noqa: E402
     backup as backup_page,
@@ -30,6 +31,9 @@ from web.pages import (  # noqa: E402
 )
 
 logger = get_logger(__name__)
+
+# Аутентификация консоли: при AUTH_MODE=none поведение не меняется.
+auth.install(app)
 
 
 @ui.page("/")
