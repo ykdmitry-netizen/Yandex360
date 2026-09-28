@@ -50,6 +50,7 @@ class YandexUser:
     phones: List[str] = field(default_factory=list)
     emails: Dict[str, List[str]] = field(default_factory=dict)
     external_id: Optional[str] = None
+    is_robot: bool = False   # сервисный ящик: архивация невозможна
 
     @property
     def main_email(self) -> Optional[str]:
@@ -88,6 +89,7 @@ class YandexUser:
             phones=data.get("phones", []),
             emails=data.get("emails", {"main": [], "alias": [], "other": []}),
             external_id=data.get("external_id", data.get("externalId")),
+            is_robot=bool(data.get("is_robot", data.get("isRobot", False))),
         )
 
     def to_dict(self) -> dict:
@@ -109,6 +111,7 @@ class YandexUser:
             "phones": self.phones,
             "emails": self.emails,
             "external_id": self.external_id,
+            "is_robot": self.is_robot,
         }
 
 

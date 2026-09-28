@@ -478,16 +478,23 @@ def publish_only_yandex(log_func: LogFunc = None) -> dict:
     yandex_users, ad_users, _depts = load_snapshot_or_raise()
     comparison = compare_users(yandex_users, ad_users)
     only_yandex = comparison.get("only_in_yandex", []) or []
-    result = integration.publish_only_yandex(only_yandex)
+    # Сервисные (роботные) ящики и ручные исключения в архивацию не берём:
+    # снимок по ним технически невозможен (IMAP для них закрыт).
+    from services import filters
+    candidates, excluded = filters.split_archivable(only_yandex)
+    if excluded:
+        _log("Исключены из архивации: " + ", ".join(f"{login} ({reason})" for login, reason in excluded))
+    result = integration.publish_only_yandex(candidates)
     closed = integration.close_returned_events([u.sam_account_name for u in ad_users])
     _log(f"Кандидатов «только в Яндексе»: {len(only_yandex)}, "
          f"опубликовано {result.get('published', 0)}, закрыто вернувшихся в AD: {closed}")
     return {
-        "candidates": len(only_yandex),
+        "candidates": len(candidates),
+        "excluded": [{"login": login, "reason": reason} for login, reason in excluded],
         "published": result.get("published", 0),
         "skipped": result.get("skipped", 0),
         "closed": closed,
-        "logins": [u.nickname for u in only_yandex][:200],
+        "logins": [u.nickname for u in candidates][:200],
     }
 
 

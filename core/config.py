@@ -89,6 +89,8 @@ class Settings:
     oidc_admin_group: str     # группа AD, которой разрешён вход ("" — любой доменный пользователь)
     oidc_group_claim: str     # имя claim с группами в id_token
     oidc_verify_tls: bool     # проверять сертификат IdP
+    # логины, которые не берём в архивацию (через запятую)
+    archive_exclude_logins: str
 
     @property
     def auth_enabled(self) -> bool:
@@ -162,6 +164,7 @@ class Settings:
             oidc_admin_group=_env("OIDC_ADMIN_GROUP", ""),
             oidc_group_claim=_env("OIDC_GROUP_CLAIM", "group"),
             oidc_verify_tls=_env_bool("OIDC_VERIFY_TLS", True),
+            archive_exclude_logins=_env("ARCHIVE_EXCLUDE_LOGINS", ""),
         )
 
 

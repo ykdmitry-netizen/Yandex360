@@ -234,6 +234,7 @@ class YandexAPIClient:
             is_dismissed=bool(raw.get("isFired", raw.get("status") in ("fired", "deleted"))),
             is_admin=bool(raw.get("isAdministrator", raw.get("isAdmin", False))),
             employee_id=raw.get("employee_id") or raw.get("employeeId"),
+            is_robot=bool(raw.get("isRobot", raw.get("is_robot", False))),
         )
         user.contacts = contacts
         user.phones = phones

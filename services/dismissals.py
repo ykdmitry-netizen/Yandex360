@@ -157,6 +157,8 @@ def find_not_backed_up() -> list[dict]:
 # ---------- Автообнаружение из Directory API ----------
 
 def discover_from_directory(users) -> int:
+    from services import filters
+
     """Проходит по пользователям и создаёт dismissals для тех, кто в disabled-статусе.
 
     users — список словарей из Directory API (с ключами id, nickname/email, status).
@@ -170,6 +172,10 @@ def discover_from_directory(users) -> int:
         if not uid or status not in DISABLED_STATUSES:
             continue
         login = u.get("nickname") or (u.get("email") or "").split("@")[0] or ""
+        allowed, reason = filters.is_archivable(u)
+        if not allowed:
+            logger.info("Пропущен ящик %s: %s", login, reason)
+            continue
         # уже есть в dismissals?
         if get_dismissal(uid):
             continue
