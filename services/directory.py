@@ -45,10 +45,18 @@ def sync_users() -> int:
         if not uid:
             continue
         login = u.get("nickname") or u.get("email", "").split("@")[0] or ""
+        # СНИЛС в Яндекс 360 хранится в externalId (строка); массив externalIds
+        # встречается в моках и старых выгрузках.
+        snils = u.get("externalId") or u.get("external_id") or None
+        if not snils:
+            for item in u.get("externalIds") or []:
+                if isinstance(item, dict) and str(item.get("type", "")).lower() == "snils":
+                    snils = item.get("id") or item.get("value")
+                    break
         execute(
             """
-            INSERT INTO users (id, org_id, login, nickname, name, position, department_id, email, status, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+            INSERT INTO users (id, org_id, login, nickname, name, position, department_id, email, snils, status, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
             ON CONFLICT (id) DO UPDATE SET
                 login=EXCLUDED.login,
                 nickname=EXCLUDED.nickname,
@@ -56,6 +64,7 @@ def sync_users() -> int:
                 position=EXCLUDED.position,
                 department_id=EXCLUDED.department_id,
                 email=EXCLUDED.email,
+                snils=COALESCE(EXCLUDED.snils, users.snils),
                 status=EXCLUDED.status,
                 updated_at=now()
             """,
@@ -68,6 +77,7 @@ def sync_users() -> int:
                 u.get("position") or None,
                 str(u["departmentId"]) if u.get("departmentId") else None,
                 u.get("email"),
+                snils,
                 u.get("status", "active"),
             ),
         )

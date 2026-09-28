@@ -118,7 +118,8 @@ MAILBOX_TABLES = [
     ("backup_runs", "id", None),
     ("dismissals", "user_id", None),
     ("backup_logs", "id", None),
-    ("sync_events", "source,user_id", None),
+    # пустой target: пропускаем при конфликте по любому уникальному ключу
+    ("sync_events", "", None),
 ]
 SYNC_TABLES = [
     ("users_snapshot", "login,source", "newer"),
@@ -128,6 +129,27 @@ SYNC_TABLES = [
 ]
 SEQUENCE_TABLES = ["backup_runs", "backup_logs", "sync_events", "audit_log",
                    "department_mapping", "organization_mapping", "retention_rules"]
+
+# Источники событий в легаси-БД. События переносятся с чужим source, а наш
+# пайплайн публикует под своим — из-за UNIQUE(source, user_id) это создавало
+# дубли (59 событий превращались в 118), поэтому source нормализуем.
+LEGACY_EVENT_SOURCES = ("project08", "project16", "mailbox", "yandex_sync", "yandex_mailbox")
+
+
+def normalize_event_sources(dst, dry_run: bool) -> dict:
+    from services.integration import SOURCE
+
+    with dst.cursor() as cur:
+        cur.execute("SELECT count(*) FROM sync_events WHERE source = ANY(%s)",
+                    (list(LEGACY_EVENT_SOURCES),))
+        legacy = cur.fetchone()[0]
+        if legacy and not dry_run:
+            cur.execute("UPDATE sync_events SET source = %s WHERE source = ANY(%s)",
+                        (SOURCE, list(LEGACY_EVENT_SOURCES)))
+        cur.execute("SELECT count(*) FROM (SELECT user_id FROM sync_events "
+                    "GROUP BY user_id HAVING count(*) > 1) t")
+        duplicates = cur.fetchone()[0]
+    return {"legacy_renamed": legacy, "duplicates_left": duplicates, "source": SOURCE}
 
 
 def columns_of(cur, table: str) -> list[str]:
@@ -178,7 +200,8 @@ def copy_table(src, dst, table: str, conflict: str, update_cols, dry_run: bool) 
             sets = ", ".join(f"{c} = EXCLUDED.{c}" for c in update_cols)
             conflict_sql = f"ON CONFLICT ({conflict}) DO UPDATE SET {sets}"
         else:
-            conflict_sql = f"ON CONFLICT ({conflict}) DO NOTHING"
+            conflict_sql = (f"ON CONFLICT ({conflict}) DO NOTHING" if conflict
+                             else "ON CONFLICT DO NOTHING")
 
         sql = (f"INSERT INTO {table} ({', '.join(cols)}) VALUES %s {conflict_sql}")
         if dry_run:
@@ -321,6 +344,9 @@ def main() -> int:
                 report["tables"].append(res)
                 print(f"   {table:<22} {res}")
             conn.rollback()  # только чтение
+
+        report["event_sources"] = normalize_event_sources(conn_dst, args.dry_run)
+        print(f"--- события ---\n   {report['event_sources']}")
 
         report["sequences"] = fix_sequences(conn_dst, args.dry_run)
         report["dismissals_filled"] = backfill_dismissals(conn_dst, args.dry_run)

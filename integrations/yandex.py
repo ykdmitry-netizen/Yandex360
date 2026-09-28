@@ -238,6 +238,15 @@ class YandexAPIClient:
         user.contacts = contacts
         user.phones = phones
         user.emails = emails
+
+        # Реальный Directory API отдаёт ОДИНОЧНЫЙ externalId (строка) — именно
+        # там хранится СНИЛС. Массив externalIds встречается в моках и старых
+        # выгрузках, поэтому поддерживаем оба варианта.
+        single_ext = raw.get("externalId") or raw.get("external_id")
+        if single_ext:
+            user.external_id = str(single_ext)
+            user.snils = str(single_ext)
+
         ext_ids = raw.get("externalIds") or []
         if isinstance(ext_ids, list):
             for item in ext_ids:
