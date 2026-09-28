@@ -115,7 +115,7 @@ def render() -> None:
         titles = {"ad": "Active Directory", "yandex": "Яндекс 360", "dept": "Отделы"}
         with ui.row().classes("w-full gap-4 items-start"):
             with ui.card().classes("y-card p-4 gap-3 grow"):
-                section_title("Снимок данных", "последние записи по источникам", "database")
+                section_title("Снимок данных", "последние записи по источникам", "storage")
                 if not snap:
                     empty_state("Снимка ещё нет — нажмите «Собрать данные»", "cloud_download")
                 for source, info in snap.items():

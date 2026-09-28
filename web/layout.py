@@ -71,7 +71,7 @@ def page_shell(title: str, active: str = "", subtitle: str = "") -> Iterator[ui.
     with drawer:
         with ui.row().classes("items-center gap-3 px-4 py-4 w-full no-wrap"):
             with ui.element("div").classes("y-brand-mark"):
-                ui.icon("shield_person").classes("text-white text-[20px]")
+                ui.icon("verified_user").classes("text-white text-[20px]")
             ui.label("Y360 Admin").classes("font-bold text-lg y-gradient-text truncate")
         ui.separator().classes("opacity-10")
         with ui.list().props("paddingless").classes("w-full py-2"):
