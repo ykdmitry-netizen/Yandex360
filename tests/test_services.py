@@ -234,9 +234,20 @@ def test_restore() -> None:
     storage = get_storage()
     backups = storage.list_backups(ORG, "belov")
     if not backups:
-        check("Есть снимок ящика для проверки восстановления", False, "data/backups/8365150/belov пуст")
-        return
-    check("Снимок ящика belov найден", True, f"{len(backups)} снимк(ов)")
+        # Свежий клон: data/backups в репозиторий не входит — делаем снимок
+        # на мок-IMAP, чтобы блок восстановления было на чём проверять.
+        try:
+            from services import backup as backup_service
+
+            print("      снимков нет — создаю снимок belov на мок-IMAP…")
+            backup_service.perform_user_backup(ORG, "belov", "manual")
+            backups = storage.list_backups(ORG, "belov")
+        except Exception as exc:  # noqa: BLE001
+            check("Снимок ящика belov для проверки восстановления", False,
+                  f"снимка нет, создать не удалось ({type(exc).__name__}: {exc}). "
+                  "Запустите scripts/start-stack.bat")
+            return
+    check("Снимок ящика belov найден", bool(backups), f"{len(backups)} снимк(ов)")
 
     snap = restore.find_snapshot(storage, ORG, "belov")
     check("find_snapshot возвращает каталог снимка", snap.is_dir(), snap.name)
