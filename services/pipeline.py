@@ -20,7 +20,7 @@ from collections import Counter
 from typing import Any, Callable, Optional
 
 from core.compare import _normalize_text, compare_users
-from core.db import load_snapshot, log_audit, save_snapshot
+from core.db import load_snapshot, log_audit, query_all, save_snapshot
 from core.logs import get_logger
 from integrations.yandex import yandex_client_from_settings
 from services.orgs import load_orgs_config
@@ -496,16 +496,11 @@ def publish_only_yandex(log_func: LogFunc = None) -> dict:
 # ------------------------------------------------------------
 
 def snapshot_status() -> dict:
-    from core.db import get_conn
-
+    rows = query_all("SELECT source, count(*) AS count, max(snapshot_at) AS at "
+                     "FROM users_snapshot GROUP BY source")
     out: dict[str, Any] = {"snapshot": {}, "audit": []}
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT source, count(*), max(snapshot_at) AS at "
-                        "FROM users_snapshot GROUP BY source")
-            for row in cur.fetchall():
-                out["snapshot"][row["source"]] = {"count": row["count"], "at": str(row["at"] or "")}
-            cur.execute("SELECT operation, target_login, success, dry_run, error_message, created_at "
-                        "FROM audit_log ORDER BY id DESC LIMIT 15")
-            out["audit"] = [dict(r) for r in cur.fetchall()]
+    for row in rows:
+        out["snapshot"][row["source"]] = {"count": row["count"], "at": str(row["at"] or "")}
+    out["audit"] = query_all("SELECT operation, target_login, success, dry_run, error_message, created_at "
+                             "FROM audit_log ORDER BY id DESC LIMIT 15")
     return out
