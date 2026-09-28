@@ -257,6 +257,11 @@ class YandexAPIClient:
             if progress_callback:
                 progress_callback(msg)
 
+        # Названия подразделений подставляются из карты: если её не загрузили
+        # заранее, у всех сотрудников будет «Не указано». Подстраховываемся.
+        if not self.department_map:
+            self.get_all_departments()
+
         ids: List[str] = []
         page = 1
         while True:
@@ -328,10 +333,20 @@ class YandexAPIClient:
     # ------------------------------------------------------------------
 
     def get_org(self) -> dict:
-        payload = self._get_json(f"{self._org_path()}/organization")
-        if payload is None:
-            payload = self._get_json(f"/directory/v1/organizations/{self.org_id}") or {}
-        return payload
+        """Информация об организации.
+
+        Проверено на боевом API: пути /org/{id}/organization не существует
+        (отдаёт null), а /directory/v1/org возвращает список организаций
+        аккаунта — выбираем свою по org_id.
+        """
+        payload = self._get_json("/directory/v1/org")
+        items = self._extract_items(payload, "organizations")
+        if not items and isinstance(payload, dict) and payload.get("id"):
+            return payload
+        for org in items:
+            if str(org.get("id")) == str(self.org_id):
+                return org
+        return items[0] if items else {}
 
     # ------------------------------------------------------------------
     # Почтовые ящики (mail-accounts) — пути проверить живым запросом

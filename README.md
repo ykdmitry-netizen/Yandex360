@@ -76,9 +76,53 @@ node tests\cdp_screenshots.mjs                   # обновить docs\renders
 ## Переход в боевой режим
 
 1. Заполнить `.env` по образцу `.env.example` (токен Яндекс 360, LDAP, PostgreSQL).
-2. Указать реальные значения вместо моков: `AD_SERVER`, `IMAP_HOST`, а
-   `YANDEX_API_BASE` оставить пустым (боевой api360.yandex.net).
+2. Указать реальные значения вместо моков: `AD_SERVER` — хост контроллера домена,
+   `IMAP_HOST=imap.yandex.ru`, а `YANDEX_API_BASE=https://api360.yandex.net`
+   (именно так, не пустым: пустое значение трактуется как мок и включает
+   индикатор «мок» в интерфейсе).
 3. Перезапустить приложение — код не меняется.
+
+## Развёртывание на сервере (Linux)
+
+Боевой контур живёт в `/opt/y360-admin`, БД `y360_admin` — в существующем
+PostgreSQL, снимки ящиков — на общем хранилище (`BACKUP_ROOT`).
+
+```bash
+git clone <репозиторий> /opt/y360-admin      # или распаковать архив
+cd /opt/y360-admin
+python3 -m venv venv && venv/bin/pip install -r requirements.txt
+cp .env.example .env                          # заполнить боевые значения
+venv/bin/python db/init_db.py                 # применить схему БД
+
+# перенос данных из проектов 08 (yandex_sync) и 16 (yandex_mailbox)
+venv/bin/python scripts/migrate_legacy.py --dry-run   # проверка
+venv/bin/python scripts/migrate_legacy.py             # перенос (идемпотентно)
+
+# сервис
+sudo cp deploy/y360-admin.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now y360-admin
+curl -I http://127.0.0.1:8080/                # консоль отвечает
+```
+
+`deploy/y360-admin.service` запускает консоль от непривилегированного
+пользователя и **не стартует без смонтированного `BACKUP_ROOT`**
+(`RequiresMountsFor`): без этой проверки приложение создало бы каталог
+хранилища на локальном диске и залило его снимками.
+
+Проверка боевых подключений (Яндекс 360 API, Active Directory) без изменения
+данных — все шаги синхронизации в режиме DRY-RUN:
+
+```bash
+venv/bin/python scripts/check_production.py
+```
+
+`scripts/migrate_legacy.py` переносит `users`, `backup_runs`, `dismissals`,
+`backup_logs`, `sync_events`, `settings` из БД проекта 16 и `users_snapshot`,
+`audit_log`, `department_mapping`, `organization_mapping` из БД проекта 08,
+сверяет файловое хранилище с таблицей `backup_runs` (снимки на диске, которых
+нет в БД, добавляются по `manifest.json`) и заполняет `dismissals.position` /
+`retention_rule`. Скрипт идемпотентный — его можно запускать повторно, пока
+старый и новый контур работают параллельно.
 
 ## Конфигурация
 
@@ -103,7 +147,10 @@ y360-admin/
 ├── integrations/        # HTTP-клиенты Яндекс 360 (Directory/Mail), токены IMAP
 ├── mocks/               # мок-сервер API Яндекс 360
 ├── db/                  # schema.sql + init_db.py
-├── scripts/             # start-stack.bat, stop-stack.bat, smoke_test.py
+├── scripts/             # start-stack.bat, stop-stack.bat, smoke_test.py,
+│                        # migrate_legacy.py (перенос из проектов 08/16),
+│                        # check_production.py (проверка боевых подключений)
+├── deploy/              # y360-admin.service (systemd)
 ├── tests/               # проверки (импорт, мок-API, страницы, сервисы, иконки)
 │                        # + ОТЧЁТ-тестирование.md
 ├── docs/renders/        # рендеры страниц консоли (скриншоты 1600 px)

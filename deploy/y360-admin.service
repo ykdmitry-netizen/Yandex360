@@ -1,0 +1,22 @@
+[Unit]
+Description=Y360 Admin — единая консоль администрирования Яндекс 360
+Documentation=https://github.com/ykdmitry-netizen/y360-admin
+After=network-online.target postgresql.service
+Wants=network-online.target
+# Хранилище снимков — NFS (Synology): без него сервис не поднимаем,
+# иначе приложение создаст каталог на локальном диске и зальёт его снимками.
+RequiresMountsFor=/mnt/Mailbox
+
+[Service]
+Type=simple
+# Консоль не требует root: нужны только БД, LDAP и запись в BACKUP_ROOT.
+User=ladmin
+Group=ladmin
+WorkingDirectory=/opt/y360-admin
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/opt/y360-admin/venv/bin/python /opt/y360-admin/web/main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

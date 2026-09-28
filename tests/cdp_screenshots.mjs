@@ -1,14 +1,18 @@
 // Снимки всех страниц консоли через Chrome DevTools Protocol:
 // точный вьюпорт 1600px (иначе Quasar включает мобильный режим бокового меню).
-// Требует Chrome с --remote-debugging-port=9222 и запущенную консоль на :8080.
+// Требует Chrome с --remote-debugging-port=9222 и запущенную консоль.
 // Запуск: node tests/cdp_screenshots.mjs  →  docs/renders/*.png
+// Адрес и каталог переопределяются переменными окружения:
+//   Y360_BASE=http://127.0.0.1:18080 Y360_OUT=.../renders-prod node tests/cdp_screenshots.mjs
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const BASE = 'http://127.0.0.1:8080';
-const OUT = fileURLToPath(new URL('../docs/renders', import.meta.url));
-const CDP = 'http://127.0.0.1:9222';
+const BASE = process.env.Y360_BASE || 'http://127.0.0.1:8080';
+const OUT = process.env.Y360_OUT
+  ? process.env.Y360_OUT
+  : fileURLToPath(new URL('../docs/renders', import.meta.url));
+const CDP = process.env.Y360_CDP || 'http://127.0.0.1:9222';
 const WIDTH = 1600;
 const MAX_HEIGHT = 1600;
 
