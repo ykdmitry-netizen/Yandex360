@@ -231,16 +231,26 @@ async def run_task(title: str, worker: Callable[[Callable], Any], *, description
     """
     log_queue: queue.Queue[tuple[str, str]] = queue.Queue()
 
+    # persistent — чтобы окно не закрывалось случайным кликом по фону, но кнопки
+    # закрытия должны быть ВНУТРИ карточки: иначе их не видно и пользователь
+    # оказывается заперт в диалоге (так и было).
     dialog = ui.dialog().props("persistent")
     with dialog, ui.card().classes("y-card w-[760px] max-w-full gap-3 p-5"):
-        with ui.row().classes("items-center gap-3 no-wrap"):
+        with ui.row().classes("items-center gap-3 no-wrap w-full"):
             icon_box = ui.element("div").classes("y-stat-icon y-tone-indigo")
             with icon_box:
-                ui.spinner(size="22px").classes("text-indigo-300")
+                spinner = ui.spinner(size="22px").classes("text-indigo-300")
             ui.label(title).classes("text-lg font-semibold")
+            ui.space()
+            ui.button(icon="close", on_click=dialog.close).props("flat round dense") \
+                .tooltip("Закрыть окно (работа продолжится в фоне)")
         if description:
             ui.label(description).classes("text-sm text-slate-400")
         log_box = ui.log(max_lines=600).classes("y-log w-full h-72 rounded-xl bg-black/40 p-2")
+        with ui.row().classes("w-full justify-end items-center gap-3"):
+            ui.label("Окно можно закрыть — операция продолжится в фоне") \
+                .classes("text-xs text-slate-500")
+            ui.button("Закрыть", on_click=dialog.close).props("flat")
     dialog.open()
 
     def log_func(msg: str, level: str = "info") -> None:
@@ -264,12 +274,13 @@ async def run_task(title: str, worker: Callable[[Callable], Any], *, description
     finally:
         timer.cancel()
         drain()
+        # Прячем крутилку, чтобы в квадратике не оказалось двух иконок сразу
+        # (из-за этого значок выглядел «съехавшим»).
+        spinner.visible = False
 
     icon_box.classes(remove="y-tone-indigo", add="y-tone-emerald" if ok else "y-tone-rose")
     with icon_box:
         ui.icon("check_circle" if ok else "error").classes("text-[22px]")
-    with ui.row().classes("w-full justify-end"):
-        ui.button("Закрыть", on_click=dialog.close).props("flat")
     if ok:
         ui.notify("Готово", type="positive")
     return result
