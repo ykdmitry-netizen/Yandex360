@@ -120,16 +120,32 @@ def reconcile_deleted(yandex_logins, ad_logins, log_func=None) -> int:
     yandex = {str(x).strip().lower() for x in (yandex_logins or []) if str(x).strip()}
     ad = {str(x).strip().lower() for x in (ad_logins or []) if str(x).strip()}
     marked = 0
-    for row in query_all("SELECT user_id, login, deletion_done_at FROM dismissals"):
+    alarms = 0
+    for row in query_all("SELECT user_id, login, deletion_done_at, backup_done_at, notes "
+                         "FROM dismissals"):
         login = str(row.get("login") or "").strip().lower()
         if not login or row.get("deletion_done_at"):
             continue
         if login in yandex or login in ad:
             continue
+        if not row.get("backup_done_at"):
+            # Ящик исчез, а снимка нет — это потеря данных, а не плановое удаление.
+            # Оставляем карточку в очереди «ожидает снимка» и поднимаем тревогу,
+            # чтобы администратор увидел её в карточке и в журнале.
+            alarms += 1
+            note = "ВНИМАНИЕ: ящик удалён, снимка нет — архив отсутствует"
+            if note not in (row.get("notes") or ""):
+                add_note(row["user_id"], note)
+            if log_func:
+                log_func(f"ТРЕВОГА: {row['login']} — ящика нет ни в Яндексе, ни в AD, "
+                         f"а снимка нет: восстановить почту будет нечем", "error")
+            continue
         mark_deleted(row["user_id"])
         marked += 1
         if log_func:
             log_func(f"{row['login']}: ящика нет ни в Яндексе, ни в AD — отмечен удалённым")
+    if alarms and log_func:
+        log_func(f"Тревог «удалён без снимка»: {alarms} — проверьте карточки архивации", "warning")
     return marked
 
 

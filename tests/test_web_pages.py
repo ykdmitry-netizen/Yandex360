@@ -18,6 +18,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
+# Тесты проверяют отрисовку страниц, а не вход: выключаем аутентификацию,
+# иначе httpx уходит в редирект на ADFS и тест падает с TooManyRedirects.
+import os  # noqa: E402
+
+os.environ["AUTH_MODE"] = "none"
+
 PAGES: list[tuple[str, str]] = [
     ("/", "состояние синхронизации и архивации"),
     ("/sync", "данные → план → карточки → события"),
