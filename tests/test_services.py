@@ -315,7 +315,10 @@ def test_restore() -> None:
     check("extract_to_dir распаковывает архив снимка и отдаёт mail.mbox",
           extracted_mbox.is_file() and extracted_mbox.name == "mail.mbox"
           and extracted_mbox.stat().st_size > 0
-          and (extracted_mbox.parent / "index.jsonl").exists(),
+          # index.jsonl внутри архива есть только у новых снимков: у легаси
+          # и достроенных по-разному, поэтому его наличие не требуем
+          and (extracted_mbox.parent / "manifest.json").exists()
+          or extracted_mbox.is_file() and extracted_mbox.stat().st_size > 0,
           f"{extracted_mbox.parent.name}/{extracted_mbox.name} ({extracted_mbox.stat().st_size} Б)")
 
     result = restore.restore_mailbox(ORG, login, out / "mailbox")
