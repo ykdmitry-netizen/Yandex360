@@ -185,10 +185,19 @@ def render() -> None:
                 return
             keys, message_ids = [], []
             for entry in selected:
-                if entry.get("uid"):
-                    keys.append((entry.get("folder") or "", str(entry["uid"])))
+                # В таблице пустые значения показаны как «—»: это не настоящий UID,
+                # иначе поиск уходил с ключом («—», «—») и ничего не находил.
+                uid = str(entry.get("uid") or "").strip()
+                folder = str(entry.get("folder") or "").strip()
+                if uid and uid not in ("—", "-"):
+                    keys.append(("" if folder in ("—", "-") else folder, uid))
                 elif entry.get("message_id"):
-                    message_ids.append(entry["message_id"])
+                    message_ids.append(str(entry["message_id"]))
+            if not keys and not message_ids:
+                ui.notify("В выбранных письмах нет ни UID, ни Message-ID — "
+                          "выберите другие письма или выгрузите ящик целиком",
+                          type="warning", multi_line=True)
+                return
             target = target_select.value
             is_dry = bool(dry_switch.value)
 
