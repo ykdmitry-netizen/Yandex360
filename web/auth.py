@@ -151,10 +151,10 @@ def _public_key(jwk: dict):
     return rsa.RSAPublicNumbers(exponent, modulus).public_key()
 
 
-def verify_id_token(token: str, nonce: str) -> dict:
+def verify_id_token(token: str, nonce: str = "", *, check_nonce: bool = True) -> dict:
     """Проверяет подпись RS256 и обязательные claims, возвращает claims.
 
-    Проверяются подпись по ключам IdP, iss, aud, exp и nonce.
+    Проверяются подпись по ключам IdP, iss, aud, exp и (для id_token) nonce.
     Любое расхождение — исключение (fail closed).
     """
     from cryptography.exceptions import InvalidSignature
@@ -201,9 +201,42 @@ def verify_id_token(token: str, nonce: str) -> dict:
         raise ValueError(f"неверный aud: {aud!r} (ожидался один из {accepted})")
     if claims.get("exp") and now > float(claims["exp"]) + 60:
         raise ValueError("id_token просрочен")
-    if nonce and claims.get("nonce") != nonce:
+    if check_nonce and nonce and claims.get("nonce") != nonce:
         raise ValueError("nonce не совпал — возможна подмена ответа")
     return claims
+
+
+def verify_access_token(token: str) -> dict:
+    """Проверяет access-токен ADFS (обычно тоже JWT) и возвращает его claims.
+
+    Зачем: в ADFS правила выдачи claim'ов (в том числе членство в группах)
+    настраиваются на Web API, а такие claim'ы попадают в access-токен, а не в
+    id_token. Поэтому группу ищем в обоих токенах.
+    """
+    return verify_id_token(token, "", check_nonce=False)
+
+
+def merge_claims(primary: dict, secondary: dict) -> dict:
+    """Дополняет claim'ы id_token данными access-токена.
+
+    Служебные поля (aud, iss, exp, nonce...) не смешиваются, а значения
+    списков (например, group) объединяются без дублей.
+    """
+    skip = {"aud", "iss", "exp", "iat", "nbf", "nonce", "sub", "jti"}
+    merged = dict(primary)
+    for key, value in (secondary or {}).items():
+        if key in skip:
+            continue
+        if key not in merged:
+            merged[key] = value
+            continue
+        existing = merged[key] if isinstance(merged[key], list) else [merged[key]]
+        extra = value if isinstance(value, list) else [value]
+        for item in extra:
+            if item not in existing:
+                existing.append(item)
+        merged[key] = existing
+    return merged
 
 
 def build_authorize_url() -> tuple[str, str, str]:
@@ -406,6 +439,17 @@ def install(app) -> None:
         try:
             tokens = exchange_code(code)
             claims = verify_id_token(tokens.get("id_token", ""), saved.get("nonce", ""))
+            if tokens.get("access_token"):
+                # В ADFS членство в группах выдаётся правилом на Web API, а такие
+                # claim'ы попадают в access-токен, а не в id_token: проверяем и его.
+                try:
+                    access_claims = verify_access_token(tokens["access_token"])
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("Access-токен не проверен: %s", exc)
+                    access_claims = {}
+                logger.info("OIDC: claim-типы id_token: %s", sorted(claims))
+                logger.info("OIDC: claim-типы access_token: %s", sorted(access_claims))
+                claims = merge_claims(claims, access_claims)
         except Exception as exc:  # noqa: BLE001
             logger.warning("Ошибка входа OIDC: %s", exc)
             return HTMLResponse(_error_page(f"Не удалось подтвердить вход: {html.escape(str(exc))}"),
