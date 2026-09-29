@@ -192,8 +192,13 @@ def verify_id_token(token: str, nonce: str) -> dict:
         raise ValueError(f"неверный iss: {claims.get('iss')!r}")
     aud = claims.get("aud")
     aud_list = aud if isinstance(aud, list) else [aud]
-    if cfg.oidc_client_id not in aud_list:
-        raise ValueError(f"неверный aud: {aud!r}")
+    # ADFS в id_token кладёт в aud либо идентификатор клиента, либо идентификатор
+    # Web API (ресурса) — принимаем оба, чтобы вход не зависел от версии ADFS.
+    accepted = [cfg.oidc_client_id] + [
+        part.strip() for part in (cfg.oidc_audience or "").split(",") if part.strip()
+    ]
+    if not any(item in aud_list for item in accepted):
+        raise ValueError(f"неверный aud: {aud!r} (ожидался один из {accepted})")
     if claims.get("exp") and now > float(claims["exp"]) + 60:
         raise ValueError("id_token просрочен")
     if nonce and claims.get("nonce") != nonce:
@@ -216,6 +221,10 @@ def build_authorize_url() -> tuple[str, str, str]:
         "nonce": nonce,
         "response_mode": "query",
     }
+    if cfg.oidc_resource:
+        # Явно просим токен для Web API ADFS: тогда ADFS применяет свою политику
+        # доступа (разрешение конкретной группе), а не только нашу проверку.
+        params["resource"] = cfg.oidc_resource
     return f"{meta['authorization_endpoint']}?{urlencode(params)}", state, nonce
 
 
