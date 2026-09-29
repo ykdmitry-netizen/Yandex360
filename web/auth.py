@@ -381,6 +381,30 @@ def ldap_authenticate(login: str, password: str) -> tuple[bool, str, dict]:
 
 # ---------------------------------------------------------------- маршруты
 
+# Незавершённые входы (state → nonce/next). Нужны как запасной путь: некоторые
+# браузеры (в частности Internet Explorer 11 после редиректа через ADFS)
+# не сохраняют куку состояния, и без этого вход срывался бы с «state не совпал».
+_PENDING: dict[str, dict] = {}
+_PENDING_TTL = 1800
+
+
+def _remember_state(state: str, payload: dict) -> None:
+    now = time.time()
+    for key in [k for k, v in _PENDING.items() if now - v.get("at", 0) > _PENDING_TTL]:
+        _PENDING.pop(key, None)
+    _PENDING[state] = {**payload, "state": state, "at": now}
+
+
+def _recall_state(state: str) -> dict | None:
+    item = _PENDING.get(state)
+    if not item:
+        return None
+    if time.time() - item.get("at", 0) > _PENDING_TTL:
+        _PENDING.pop(state, None)
+        return None
+    return item
+
+
 def install(app) -> None:
     """Подключает защиту и маршруты входа к приложению NiceGUI/FastAPI."""
     cfg = get_settings()
@@ -409,6 +433,10 @@ def install(app) -> None:
         if cfg.auth_mode == "ldap":
             return HTMLResponse(_login_form(next, error=""))
         url, state, nonce = build_authorize_url()
+        # Держим незавершённый вход и на сервере: если браузер не сохранит куку
+        # состояния (так ведёт себя IE11 после редиректа через ADFS), вход всё
+        # равно завершится.
+        _remember_state(state, {"nonce": nonce, "next": next})
         resp = RedirectResponse(url, status_code=302)
         resp.set_cookie(STATE_COOKIE,
                         _serializer().dumps({"state": state, "nonce": nonce, "next": next}),
@@ -435,6 +463,12 @@ def install(app) -> None:
             return HTMLResponse(_error_page(f"IdP вернул ошибку: {html.escape(error)} "
                                             f"{html.escape(error_description)}"), status_code=401)
         saved = session_from_cookie(request.cookies.get(STATE_COOKIE))
+        if not saved or saved.get("state") != state:
+            # Запасной путь: состояние, сохранённое на сервере при выдаче редиректа.
+            # Нужен для браузеров, которые не сохраняют куку состояния (IE11).
+            saved = _recall_state(state)
+            if saved:
+                logger.info("Вход: кука состояния не пришла, взял состояние с сервера")
         if not saved or saved.get("state") != state:
             # Частая причина: вход начат не по имени из сертификата, а по адресу
             # вида http://10.10.0.132:8080 — кука входа помечена Secure и по http
