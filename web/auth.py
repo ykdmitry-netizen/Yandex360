@@ -325,6 +325,42 @@ def user_from_claims(claims: dict) -> dict:
 
 # ------------------------------------------------------------------- LDAP
 
+def ldap_groups_of(login: str) -> list[str]:
+    """Группы пользователя в Active Directory по логину, UPN или почте.
+
+    Нужна, когда ADFS не отдаёт членство в группах: у серверного приложения
+    групп в id_token нет, а access-токен выходит непрозрачным, если у Web API
+    не сгенерирован ключ подписи JWT (в ADFS он пуст). В этом случае членство
+    проверяем прямо в каталоге — доступ к LDAPS у консоли уже есть.
+    """
+    import ldap3
+
+    from core.ad import ad_client_from_settings
+
+    cfg = get_settings()
+    login = (login or "").strip()
+    if not login or cfg.mock_ad:
+        return []
+    client = ad_client_from_settings()
+    server_url = client._normalize_server(client.server, client.use_ssl)
+    escaped = ldap3.utils.conv.escape_filter_chars(login)
+    query = ("(&(objectClass=user)(|"
+             f"(sAMAccountName={escaped})(userPrincipalName={escaped})(mail={escaped})))")
+    try:
+        server = ldap3.Server(server_url, get_info=ldap3.NONE)
+        with ldap3.Connection(server, user=client.bind_dn, password=client.bind_password,
+                              auto_bind=True, receive_timeout=client.timeout) as conn:
+            conn.search(client.base_dn, query, attributes=["memberOf"])
+            if not conn.entries:
+                logger.info("AD: пользователь %s не найден", login)
+                return []
+            attrs = conn.entries[0].entry_attributes_as_dict
+            return [_dn_cn(str(g)) for g in (attrs.get("memberOf") or [])]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("AD: не удалось получить группы %s: %s", login, exc)
+        return []
+
+
 def ldap_authenticate(login: str, password: str) -> tuple[bool, str, dict]:
     """Проверяет доменную учётку через LDAP-bind (AUTH_MODE=ldap).
 
@@ -501,6 +537,19 @@ def install(app) -> None:
             return HTMLResponse(_error_page(f"Не удалось подтвердить вход: {html.escape(str(exc))}"),
                                 status_code=401)
         allowed, reason = access_decision(claims)
+        if not allowed and cfg.oidc_admin_group:
+            # ADFS может не отдавать группы вовсе: в id_token их нет, а access-токен
+            # выходит непрозрачным без ключа подписи JWT у Web API. Тогда членство
+            # проверяем прямо в Active Directory по LDAP.
+            login_hint = (claims.get("upn") or claims.get("unique_name")
+                          or claims.get("email") or claims.get("preferred_username") or "")
+            groups_from_ad = ldap_groups_of(login_hint)
+            logger.info("AD: группы для %s: %s", login_hint, ", ".join(groups_from_ad) or "—")
+            if any(cfg.oidc_admin_group.strip().lower() == group.lower()
+                   for group in groups_from_ad):
+                logger.info("Вход разрешён по членству в AD: %s", cfg.oidc_admin_group)
+                allowed, reason = True, ""
+                claims["groups"] = groups_from_ad
         if not allowed:
             logger.warning("Отказ во входе: %s", reason)
             return HTMLResponse(_error_page(f"Доступ запрещён: {html.escape(reason)}"), status_code=403)
