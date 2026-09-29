@@ -34,6 +34,22 @@ def _user_name(raw: dict) -> Optional[str]:
     return name or None
 
 
+def _raw_status(raw: dict) -> str:
+    """Статус учётки из ответа Directory API Яндекс 360.
+
+    Признак блокировки приходит полем isEnabled, а не status: сотрудник в
+    отпуске в Яндексе заблокирован, но мы писали ему «active», и вся консоль
+    (сводки, справочник, снимки) считала его активным.
+    """
+    status = str(raw.get("status") or "").strip()
+    if status:
+        return status
+    for key in ("isEnabled", "is_enabled", "enabled"):
+        if key in raw:
+            return "active" if raw.get(key) else "disabled"
+    return "active"
+
+
 def sync_users() -> int:
     """Загружает всех пользователей из API в таблицу users, возвращает их число."""
     client = _client()
@@ -78,7 +94,7 @@ def sync_users() -> int:
                 str(u["departmentId"]) if u.get("departmentId") else None,
                 u.get("email"),
                 snils,
-                u.get("status", "active"),
+                _raw_status(u),
             ),
         )
         count += 1
