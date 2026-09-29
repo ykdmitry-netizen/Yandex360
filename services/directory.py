@@ -61,7 +61,7 @@ def sync_users() -> int:
                 login=EXCLUDED.login,
                 nickname=EXCLUDED.nickname,
                 name=EXCLUDED.name,
-                position=EXCLUDED.position,
+                position=COALESCE(NULLIF(EXCLUDED.position, ''), users.position),
                 department_id=EXCLUDED.department_id,
                 email=EXCLUDED.email,
                 snils=COALESCE(EXCLUDED.snils, users.snils),
@@ -112,7 +112,10 @@ def upsert_user(user: User) -> None:
         INSERT INTO users (id, org_id, login, nickname, name, position, department_id, email, status, updated_at)
         VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,now())
         ON CONFLICT (id) DO UPDATE SET
-            login=EXCLUDED.login, name=EXCLUDED.name, position=EXCLUDED.position,
+            login=EXCLUDED.login, name=EXCLUDED.name,
+            -- должность не затираем пустым значением: при увольнении её
+            -- убирают из AD, а для расчёта срока хранения она нужна
+            position=COALESCE(NULLIF(EXCLUDED.position, ''), users.position),
             department_id=EXCLUDED.department_id,
             email=EXCLUDED.email, status=EXCLUDED.status, updated_at=now()
         """,
