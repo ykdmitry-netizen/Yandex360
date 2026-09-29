@@ -484,6 +484,16 @@ def publish_only_yandex(log_func: LogFunc = None) -> dict:
     candidates, excluded = filters.split_archivable(only_yandex)
     if excluded:
         _log("Исключены из архивации: " + ", ".join(f"{login} ({reason})" for login, reason in excluded))
+    # Ящики, которых больше нет ни в Яндексе, ни в AD, считаем удалёнными:
+    # сроки отрабатывает внешний скрипт, консоль лишь фиксирует результат.
+    from services import dismissals
+    marked_deleted = dismissals.reconcile_deleted(
+        [u.nickname for u in yandex_users],
+        [u.sam_account_name for u in ad_users],
+        _log,
+    )
+    if marked_deleted:
+        _log(f"Отмечено удалёнными (исчезли из Яндекса и AD): {marked_deleted}")
     result = integration.publish_only_yandex(candidates)
     closed = integration.close_returned_events([u.sam_account_name for u in ad_users])
     _log(f"Кандидатов «только в Яндексе»: {len(only_yandex)}, "

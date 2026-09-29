@@ -109,6 +109,30 @@ def mark_backup_done(user_id: str, run_id: int) -> None:
     _sync_event_status(user_id, "backed_up", notes=notes)
 
 
+def reconcile_deleted(yandex_logins, ad_logins, log_func=None) -> int:
+    """Отмечает карточки удалёнными, если логина нет ни в Яндексе, ни в AD.
+
+    Сроки хранения в организации отрабатывает внешний скрипт: по наступлении
+    срока он удаляет учётную запись в Яндекс 360. Консоль ничего не удаляет,
+    но обязана заметить результат — иначе карточка навсегда останется в
+    состоянии «удаление запланировано», а показатель «Удалено» не наполнится.
+    """
+    yandex = {str(x).strip().lower() for x in (yandex_logins or []) if str(x).strip()}
+    ad = {str(x).strip().lower() for x in (ad_logins or []) if str(x).strip()}
+    marked = 0
+    for row in query_all("SELECT user_id, login, deletion_done_at FROM dismissals"):
+        login = str(row.get("login") or "").strip().lower()
+        if not login or row.get("deletion_done_at"):
+            continue
+        if login in yandex or login in ad:
+            continue
+        mark_deleted(row["user_id"])
+        marked += 1
+        if log_func:
+            log_func(f"{row['login']}: ящика нет ни в Яндексе, ни в AD — отмечен удалённым")
+    return marked
+
+
 def mark_deleted(user_id: str) -> None:
     execute("UPDATE dismissals SET deletion_done_at=now() WHERE user_id=%s", (user_id,))
     _sync_event_status(user_id, "deleted", notes="ящик удалён в Яндексе")
