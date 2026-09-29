@@ -182,8 +182,12 @@ class _Writer:
                 self._ensure_selected(encoded_folder)
                 if message_id and self._already_there(self.conn, message_id):
                     return "skipped", None
+                # Порядок аргументов imaplib: (папка, флаги, дата, письмо).
+                # Раньше письмо попадало на место флагов, а дата — на место
+                # письма, из-за чего APPEND падал с «cannot use a bytes pattern
+                # on a string-like object» и возврат писем не работал вовсе.
                 typ, data = self.conn.append(
-                    _mailbox_ref(encoded_folder), raw, None, internal_date
+                    _mailbox_ref(encoded_folder), None, internal_date, raw
                 )
                 if typ == "OK":
                     return "ok", None
