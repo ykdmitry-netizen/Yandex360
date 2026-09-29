@@ -202,3 +202,20 @@ INSERT INTO retention_rules (name, keywords, delete_after_amount, delete_after_u
      '',
      14, 'days', 9999, 'Все прочие работники (правило по умолчанию)')
 ON CONFLICT (name) DO NOTHING;
+
+-- ------------------------------------------------------------
+-- Официальный перечень сроков хранения по должностям (документ HR).
+-- Проверяется РАНЬШЕ подбора по ключевым словам: точное совпадение важнее.
+-- Загрузка: scripts/load_retention_positions.py
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS retention_positions (
+    position      TEXT PRIMARY KEY,
+    position_norm TEXT NOT NULL,
+    rule_name     TEXT NOT NULL,
+    months        INTEGER,
+    days          INTEGER,
+    source        TEXT,
+    loaded_at     TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_retention_positions_norm ON retention_positions(position_norm);
+

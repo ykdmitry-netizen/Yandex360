@@ -35,6 +35,8 @@ class RetentionRule:
     priority: int
     active: bool
     notes: str | None = None
+    # Заполняется, когда правило взято из официального перечня должностей
+    exact_position: str | None = None
 
     @property
     def is_fallback(self) -> bool:
@@ -99,8 +101,43 @@ def get_rule(rule_id: int) -> RetentionRule | None:
     return RetentionRule.from_row(row) if row else None
 
 
+def load_exact_positions() -> dict[str, RetentionRule]:
+    """Официальный перечень должностей: нормализованная должность -> правило.
+
+    Таблица retention_positions заполняется из db/retention_positions.txt и имеет
+    приоритет над подбором по ключевым словам: в документе «Директор шахты» — 2 мес.,
+    а «Директор по производству» — 3 мес., и путать их нельзя.
+    """
+    try:
+        rows = query_all("SELECT position, position_norm, months, days, rule_name "
+                         "FROM retention_positions")
+    except Exception as exc:  # noqa: BLE001 — до загрузки перечня таблицы может не быть
+        logger.warning("Официальный перечень должностей недоступен: %s", exc)
+        return {}
+    result: dict[str, RetentionRule] = {}
+    for row in rows:
+        months, days = row.get("months"), row.get("days")
+        if months:
+            amount, unit = int(months), "months"
+        elif days:
+            amount, unit = int(days), "days"
+        else:
+            continue
+        result[row["position_norm"]] = RetentionRule(
+            id=-1, name=row.get("rule_name") or "Официальный перечень", keywords="",
+            delete_after_amount=amount, delete_after_unit=unit, priority=0, active=True,
+            notes=f"официальный перечень: {row['position']}",
+            exact_position=row["position"])
+    return result
+
+
 def resolve_rule(position: str | None, rules: Iterable[RetentionRule] | None = None) -> RetentionRule | None:
-    """Подбирает правило по должности: по приоритету, затем fallback."""
+    """Подбирает правило: официальный перечень → ключевые слова → fallback."""
+    position_norm = normalize(position)
+    if position_norm:
+        exact = load_exact_positions()
+        if position_norm in exact:
+            return exact[position_norm]
     ordered = list(rules) if rules is not None else load_rules()
     for rule in ordered:
         if not rule.active:
@@ -146,7 +183,10 @@ def plan_deletion(
         logger.warning("Правило хранения для должности %r не найдено — реестр пуст", position)
         return {"rule": None, "deletion_at": None, "amount": None, "unit": None, "matched_by": None}
     deletion_at = add_period(base, rule.delete_after_amount, rule.delete_after_unit)
-    matched = [kw for kw in parse_keywords(rule.keywords) if _keyword_matches(normalize(position), kw)]
+    if rule.exact_position:
+        matched = [f"точная должность: {rule.exact_position}"]
+    else:
+        matched = [kw for kw in parse_keywords(rule.keywords) if _keyword_matches(normalize(position), kw)]
     logger.info(
         "Срок хранения по должности %r: правило «%s» (%s), удаление %s",
         position, rule.name, rule.label, deletion_at.date(),
