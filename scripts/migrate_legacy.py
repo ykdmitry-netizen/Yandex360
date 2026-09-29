@@ -136,6 +136,29 @@ SEQUENCE_TABLES = ["backup_runs", "backup_logs", "sync_events", "audit_log",
 LEGACY_EVENT_SOURCES = ("project08", "project16", "mailbox", "yandex_sync", "yandex_mailbox")
 
 
+def drop_excluded_rows(dst, dry_run: bool) -> dict:
+    """Убирает из приёмника строки исключённых (сервисных) ящиков.
+
+    Легаси-БД продолжает их хранить, поэтому без этой чистки каждая
+    миграция возвращала бы сервисные ящики в очередь архивации.
+    """
+    from services.filters import excluded_logins
+
+    logins = sorted(excluded_logins())
+    if not logins:
+        return {"removed": 0, "logins": []}
+    removed = 0
+    with dst.cursor() as cur:
+        for table in ("sync_events", "dismissals"):
+            if dry_run:
+                cur.execute(f"SELECT count(*) FROM {table} WHERE login = ANY(%s)", (logins,))
+                removed += cur.fetchone()[0]
+            else:
+                cur.execute(f"DELETE FROM {table} WHERE login = ANY(%s)", (logins,))
+                removed += cur.rowcount
+    return {"removed": removed, "logins": logins}
+
+
 def normalize_event_sources(dst, dry_run: bool) -> dict:
     from services.integration import SOURCE
 
@@ -345,6 +368,7 @@ def main() -> int:
                 print(f"   {table:<22} {res}")
             conn.rollback()  # только чтение
 
+        report["excluded_rows"] = drop_excluded_rows(conn_dst, args.dry_run)
         report["event_sources"] = normalize_event_sources(conn_dst, args.dry_run)
         print(f"--- события ---\n   {report['event_sources']}")
 
