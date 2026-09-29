@@ -412,7 +412,8 @@ def install(app) -> None:
         resp = RedirectResponse(url, status_code=302)
         resp.set_cookie(STATE_COOKIE,
                         _serializer().dumps({"state": state, "nonce": nonce, "next": next}),
-                        max_age=600, httponly=True, samesite="lax",
+                        # 30 минут: человек может не сразу ввести пароль в ADFS,
+                        max_age=1800, httponly=True, samesite="lax",
                         secure=cfg.auth_cookie_secure)
         return resp
 
@@ -435,7 +436,18 @@ def install(app) -> None:
                                             f"{html.escape(error_description)}"), status_code=401)
         saved = session_from_cookie(request.cookies.get(STATE_COOKIE))
         if not saved or saved.get("state") != state:
-            return HTMLResponse(_error_page("state не совпал — повторите вход"), status_code=400)
+            # Частая причина: вход начат не по имени из сертификата, а по адресу
+            # вида http://10.10.0.132:8080 — кука входа помечена Secure и по http
+            # браузер её не сохраняет, поэтому на возврате из ADFS её нет.
+            host = request.headers.get("host", "неизвестен")
+            has_cookie = "есть" if request.cookies.get(STATE_COOKIE) else "нет"
+            logger.warning("Вход: state не совпал (host=%s, кука состояния: %s)", host, has_cookie)
+            return HTMLResponse(_error_page(
+                "state не совпал — повторите вход.<br><br>"
+                "Заходите строго по адресу <b>https://y360-admin.kolmar.local</b>: "
+                "вход по прямому адресу с портом 8080 не работает, браузер не сохраняет "
+                f"куку входа. Сейчас запрос пришёл с адреса «{html.escape(host)}»."),
+                status_code=400)
         try:
             tokens = exchange_code(code)
             claims = verify_id_token(tokens.get("id_token", ""), saved.get("nonce", ""))
